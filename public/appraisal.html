@@ -7,22 +7,73 @@
   <link rel="stylesheet" href="appraisal.css" />
 </head>
 <body>
+
+  <!-- 헤더 -->
   <header>
-    <div class="header-title">
-      <img src="taesigi_logo.png" alt="태식이 로고" class="logo-img" />
-      <div>
-        <h1>태식이</h1>
-        <span class="subtitle">감정서 검토 프로그램</span>
+    <div class="header-inner">
+      <div class="header-title">
+        <img src="taesigi_logo.png" alt="태식이" class="logo-img" />
+        <div>
+          <h1>태식이</h1>
+          <span class="subtitle">감정서 검토 프로그램</span>
+        </div>
       </div>
+      <span class="company-name">태평양감정평가법인</span>
     </div>
-    <span style="font-size:0.8rem;color:#6a8fb0;">태평양감정평가법인</span>
   </header>
 
+  <!-- 가이드 섹션 -->
+  <section class="guide-section">
+    <div class="guide-inner">
+
+      <div class="guide-block">
+        <div class="guide-block-title"><span class="guide-icon">①</span> 사용 순서</div>
+        <ol class="guide-list">
+          <li>감정평가서 PDF 업로드</li>
+          <li>공부서류 PDF 업로드 <em>(선택)</em></li>
+          <li>검토 시작 클릭</li>
+          <li>섹션별 결과 확인</li>
+          <li>태식이가 놓친 오류 피드백</li>
+        </ol>
+      </div>
+
+      <div class="guide-divider"></div>
+
+      <div class="guide-block">
+        <div class="guide-block-title"><span class="guide-icon">②</span> 검토 항목</div>
+        <ul class="guide-list">
+          <li>개별요인비교치 계산 검산</li>
+          <li>우세 · 열세 텍스트 ↔ 요인치 일치</li>
+          <li>의견서 계산식 검산 (A×B=C)</li>
+          <li>섹션 간 수치 교차 확인</li>
+          <li>공부서류 면적 · 용도 · 소유자 대조</li>
+        </ul>
+      </div>
+
+      <div class="guide-divider"></div>
+
+      <div class="guide-block">
+        <div class="guide-block-title"><span class="guide-icon">③</span> 유의사항</div>
+        <ul class="guide-list caution">
+          <li>텍스트 기반 PDF만 가능<br><small>스캔본은 분석 불가</small></li>
+          <li>공부서류는 전자원본만<br><small>정부24 · 대법원 발급본</small></li>
+          <li>결과는 참고용 — 최종 판단은 담당자</li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 메인 컨테이너 -->
   <div class="container">
 
+    <!-- 업로드 영역 -->
     <div class="upload-row">
       <div class="upload-col">
-        <div class="upload-label">감정평가서</div>
+        <div class="upload-label">
+          <span class="label-badge primary">필수</span>
+          감정평가서
+        </div>
         <div class="upload-zone" id="dropZone">
           <div class="icon">📋</div>
           <p>감정평가서 PDF<br>끌어다 놓거나 클릭</p>
@@ -31,10 +82,14 @@
         </div>
       </div>
       <div class="upload-col">
-        <div class="upload-label">공부서류 <span class="upload-note">원본 전자문서만 (스캔 불가)</span></div>
+        <div class="upload-label">
+          <span class="label-badge optional">선택</span>
+          공부서류
+          <span class="upload-note">원본 전자문서만</span>
+        </div>
         <div class="upload-zone upload-zone-gongbu" id="dropZoneGongbu">
           <div class="icon">📑</div>
-          <p>토지대장 · 건축물대장<br>등기 · 토이계 등<br><small style="color:#aaa">여러 파일 동시 선택 가능</small></p>
+          <p>토지대장 · 건축물대장<br>등기 · 토이계 등<br><small>여러 파일 동시 선택 가능</small></p>
           <div class="file-name" id="fileNameGongbu"></div>
           <input type="file" id="fileInputGongbu" accept=".pdf,application/pdf" multiple />
         </div>
@@ -42,7 +97,7 @@
     </div>
 
     <div style="text-align:center;">
-      <button class="btn" id="reviewBtn" disabled>검토 시작</button>
+      <button class="btn-review" id="reviewBtn" disabled>🔍 검토 시작</button>
     </div>
 
     <div class="progress-wrap" id="progressWrap">
@@ -58,10 +113,10 @@
       <div id="sectionResults"></div>
     </div>
 
-    <!-- 태식이 피드백 (하단) -->
+    <!-- 하단 피드백 -->
     <div id="feedbackZone" style="display:none;">
       <div class="feedback-zone-header">
-        <span class="dog-icon">🐶</span>
+        <img src="taesigi_logo.png" alt="" class="feedback-logo" />
         <div>
           <strong>태식이가 놓친 게 있나요?</strong>
           <p>프로그램이 잡지 못한 오류를 알려주시면 태식이가 똑똑해집니다.</p>
@@ -75,14 +130,13 @@
         </div>
       </div>
 
-      <!-- 패턴 분석 -->
       <div class="analyze-panel" id="analyzePanel">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div>
             <strong>🔬 태식이 업그레이드</strong>
             <div id="feedbackStats" style="font-size:0.82rem;color:#777;margin-top:2px;"></div>
           </div>
-          <button class="btn" id="analyzeBtn" style="margin:0;padding:8px 20px;font-size:0.88rem;">AI 패턴 분석</button>
+          <button class="btn-small" id="analyzeBtn">AI 패턴 분석</button>
         </div>
         <div id="analyzeResult" style="display:none;margin-top:16px;">
           <div class="analyze-result" id="analyzeText"></div>
@@ -98,6 +152,10 @@
     </div>
 
   </div>
+
+  <footer>
+    <span>태식이 © 태평양감정평가법인</span>
+  </footer>
 
   <script src="appraisal.js"></script>
 </body>
