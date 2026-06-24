@@ -20,6 +20,7 @@ let selectedGongbuFiles = [];
 let currentFileName = '';
 // finding 객체를 id 기반으로 보관 (onclick 속성에 JSON 넣으면 특수문자 충돌)
 const _findings = {};
+let _findingCounter = 0;
 
 // 섹션 표시 순서
 const SECTION_ORDER = ['표지', '괄호감정표', '담보가치총괄표', '의견서', '요항표', '명세표', '위치도', '사진', '기타'];
@@ -173,6 +174,9 @@ reviewBtn.addEventListener('click', async () => {
 
 // ── 결과 렌더링 ─────────────────────────────────────────────
 function renderResults(data) {
+  // 재검토 시 이전 finding 참조 초기화
+  Object.keys(_findings).forEach(k => delete _findings[k]);
+  _findingCounter = 0;
   const { summary, results } = data;
 
   // 전체 요약 뱃지
@@ -211,8 +215,8 @@ function renderResults(data) {
     else if (warnCnt > 0) { pillClass = 'warning'; pillText = `경고 ${warnCnt}건`; }
     else if (infoCnt > 0) { pillClass = 'info'; pillText = `확인필요 ${infoCnt}건`; }
 
-    const findingsHtml = items.length === 0 ? '' : items.map((f, fi) => {
-      const fid = `f_${secName}_${fi}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    const findingsHtml = items.length === 0 ? '' : items.map((f) => {
+      const fid = `f_${_findingCounter++}`;
       _findings[fid] = f; // JSON-in-onclick 대신 Map에 보관
       return `
         <div class="finding-item ${f.severity}" id="${fid}">
