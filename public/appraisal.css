@@ -16,7 +16,7 @@ header {
   justify-content: space-between;
 }
 .header-title { display: flex; align-items: center; gap: 14px; }
-.header-title .logo { font-size: 2rem; }
+.logo-img { height: 52px; width: auto; border-radius: 8px; }
 .header-title h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
 .header-title .subtitle { font-size: 0.82rem; color: #aac8f0; }
 header a { color: #aac8f0; font-size: 0.85rem; text-decoration: none; }
