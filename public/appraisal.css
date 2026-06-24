@@ -35,21 +35,62 @@ header {
 .header-inner {
   max-width: 960px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .header-title { display: flex; align-items: center; gap: 14px; }
-.logo-img { height: 48px; width: auto; }
-.header-title h1 {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.5px;
+
+/* 로고 래퍼: 크림 원형 배경으로 PNG 이미지 표시 */
+.logo-wrap {
+  background: var(--cream);
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid var(--gold);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
-.header-title .subtitle { font-size: 0.78rem; color: var(--gold); display: block; }
-.company-name { font-size: 0.8rem; color: rgba(255,255,255,0.55); }
+.logo-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.header-text { display: flex; flex-direction: column; gap: 2px; }
+.header-brand { display: flex; align-items: baseline; gap: 10px; }
+.brand-name {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+.brand-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--gold);
+  color: var(--navy);
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0;
+}
+.brand-sub { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
+
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.company-badge {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 3px 10px;
+  border-radius: 10px;
+}
 
 /* ── 가이드 섹션 ── */
 .guide-section {
