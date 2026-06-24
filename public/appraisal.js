@@ -1,6 +1,9 @@
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const fileName = document.getElementById('fileName');
+const dropZoneGongbu = document.getElementById('dropZoneGongbu');
+const fileInputGongbu = document.getElementById('fileInputGongbu');
+const fileNameGongbu = document.getElementById('fileNameGongbu');
 const reviewBtn = document.getElementById('reviewBtn');
 const progressWrap = document.getElementById('progressWrap');
 const progressBar = document.getElementById('progressBar');
@@ -13,12 +16,13 @@ const feedbackZone = document.getElementById('feedbackZone');
 const analyzeBtn = document.getElementById('analyzeBtn');
 
 let selectedFile = null;
+let selectedGongbuFiles = [];
 let currentFileName = '';
 
 // 섹션 표시 순서
 const SECTION_ORDER = ['표지', '괄호감정표', '의견서', '요항표', '명세표', '위치도', '사진', '기타'];
 
-// ── 파일 선택 ──────────────────────────────────────────────
+// ── 감정평가서 파일 선택 ───────────────────────────────────────
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
@@ -32,11 +36,30 @@ function setFile(file) {
   if (!file.name.toLowerCase().endsWith('.pdf')) { showError('PDF 파일만 업로드 가능합니다.'); return; }
   selectedFile = file;
   currentFileName = file.name;
-  fileName.textContent = `선택됨: ${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+  fileName.textContent = `${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
   reviewBtn.disabled = false;
   clearError();
   resultsEl.classList.remove('visible');
   feedbackZone.style.display = 'none';
+}
+
+// ── 공부서류 파일 선택 ─────────────────────────────────────────
+dropZoneGongbu.addEventListener('click', () => fileInputGongbu.click());
+dropZoneGongbu.addEventListener('dragover', e => { e.preventDefault(); dropZoneGongbu.classList.add('drag-over'); });
+dropZoneGongbu.addEventListener('dragleave', () => dropZoneGongbu.classList.remove('drag-over'));
+dropZoneGongbu.addEventListener('drop', e => {
+  e.preventDefault(); dropZoneGongbu.classList.remove('drag-over');
+  setGongbuFiles(Array.from(e.dataTransfer.files));
+});
+fileInputGongbu.addEventListener('change', () => {
+  setGongbuFiles(Array.from(fileInputGongbu.files));
+});
+
+function setGongbuFiles(files) {
+  const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+  if (pdfs.length === 0) return;
+  selectedGongbuFiles = pdfs;
+  fileNameGongbu.textContent = pdfs.map(f => f.name).join(', ');
 }
 
 // ── 검토 시작 ───────────────────────────────────────────────
@@ -50,6 +73,7 @@ reviewBtn.addEventListener('click', async () => {
 
   const formData = new FormData();
   formData.append('pdf', selectedFile);
+  selectedGongbuFiles.forEach(f => formData.append('gongbu', f));
 
   const PROGRESS_STEPS = [
     [20,  'PDF 텍스트 추출 중...'],
@@ -94,11 +118,14 @@ function renderResults(data) {
   // 전체 요약 뱃지
   const okMsg = summary.errorCount === 0 && summary.warningCount === 0
     ? `<span class="badge ok">✅ 이상 없음</span>` : '';
+  const gongbuBadge = summary.gongbuDocs?.length
+    ? `<span class="badge gongbu">📑 공부: ${summary.gongbuDocs.join(' · ')}</span>` : '';
   summaryBar.innerHTML = `
     <span class="badge total">총 ${summary.pages}페이지</span>
     ${summary.errorCount > 0 ? `<span class="badge error">오류 ${summary.errorCount}건</span>` : ''}
     ${summary.warningCount > 0 ? `<span class="badge warning">경고 ${summary.warningCount}건</span>` : ''}
     ${okMsg}
+    ${gongbuBadge}
   `;
 
   // findings를 섹션별로 그룹화

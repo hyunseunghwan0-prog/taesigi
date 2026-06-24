@@ -24,6 +24,36 @@ header a:hover { text-decoration: underline; }
 
 .container { max-width: 860px; margin: 0 auto; padding: 32px 16px; }
 
+/* Upload row layout */
+.upload-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.upload-col { flex: 1; min-width: 0; }
+.upload-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1a3a5c;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.upload-note {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #e74c3c;
+  background: #fde8e8;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.upload-zone-gongbu { border-color: #b0c8a0; }
+.upload-zone-gongbu:hover, .upload-zone-gongbu.drag-over {
+  border-color: #4a8f3f;
+  background: #f0f8ec;
+}
+
 /* Upload zone */
 .upload-zone {
   border: 2px dashed #90aecb;
@@ -84,6 +114,7 @@ header a:hover { text-decoration: underline; }
 .badge.error { background: #fde8e8; color: #c0392b; }
 .badge.warning { background: #fef3e2; color: #d68910; }
 .badge.ok { background: #e8f8ef; color: #1e8449; }
+.badge.gongbu { background: #f0f8ec; color: #3a7a30; }
 
 /* ── 섹션별 결과 (메인 위계) ── */
 .section-block {

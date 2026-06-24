@@ -6,6 +6,8 @@ const fs = require('fs');
 const { convertDocx } = require('./lib/converter');
 const { extractPdf } = require('./lib/appraisal/pdfExtractor');
 const { runAllCheckers } = require('./lib/appraisal/index');
+const { parsePublicRecord } = require('./lib/appraisal/publicRecordParser');
+const publicRecordChecker = require('./lib/appraisal/checkers/publicRecordChecker');
 const feedbackStore = require('./lib/appraisal/feedbackStore');
 const { analyzeFeedback } = require('./lib/appraisal/patternAnalyzer');
 const { initDb } = require('./lib/db');
@@ -123,27 +125,62 @@ const appraisalUpload = multer({
   },
 });
 
-app.post('/api/appraisal/review', appraisalUpload.single('pdf'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'PDF 파일을 업로드해주세요.' });
+app.post('/api/appraisal/review', appraisalUpload.fields([
+  { name: 'pdf', maxCount: 1 },
+  { name: 'gongbu', maxCount: 10 },
+]), async (req, res) => {
+  const pdfFile = req.files?.pdf?.[0];
+  if (!pdfFile) return res.status(400).json({ error: 'PDF 파일을 업로드해주세요.' });
+
+  const gongbuFiles = req.files?.gongbu || [];
 
   try {
-    const { pages } = await extractPdf(req.file.path);
+    const { pages } = await extractPdf(pdfFile.path);
     const { results, detectedSections } = await runAllCheckers(pages);
 
-    const allFindings = results.flatMap(r => r.findings);
-    const totalFindings = allFindings.length;
-    const errorCount = allFindings.filter(f => f.severity === 'error').length;
-    const warningCount = allFindings.filter(f => f.severity === 'warning').length;
+    // 공부서류 처리
+    let publicRecords = [];
+    let publicRecordResult = null;
+    if (gongbuFiles.length > 0) {
+      for (const gf of gongbuFiles) {
+        try {
+          const { pages: gPages } = await extractPdf(gf.path);
+          const text = gPages.map(p => p.text).join('\n');
+          const parsed = parsePublicRecord(text);
+          publicRecords.push(parsed);
+        } catch (e) {
+          console.error('공부서류 파싱 오류:', e.message);
+        }
+      }
+      const gongbuFindings = publicRecordChecker.check(pages, publicRecords);
+      publicRecordResult = {
+        checker: publicRecordChecker.name,
+        description: publicRecordChecker.description,
+        findings: gongbuFindings,
+        detectedDocs: publicRecords.map(r => r.label),
+      };
+    }
+
+    const allResults = publicRecordResult ? [...results, publicRecordResult] : results;
+    const allFindings = allResults.flatMap(r => r.findings);
 
     res.json({
-      summary: { pages: pages.length, totalFindings, errorCount, warningCount, detectedSections },
-      results,
+      summary: {
+        pages: pages.length,
+        totalFindings: allFindings.length,
+        errorCount: allFindings.filter(f => f.severity === 'error').length,
+        warningCount: allFindings.filter(f => f.severity === 'warning').length,
+        detectedSections,
+        gongbuDocs: publicRecords.map(r => r.label),
+      },
+      results: allResults,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || '검토 중 오류가 발생했습니다.' });
   } finally {
-    try { fs.unlinkSync(req.file.path); } catch {}
+    try { fs.unlinkSync(pdfFile.path); } catch {}
+    gongbuFiles.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
   }
 });
 

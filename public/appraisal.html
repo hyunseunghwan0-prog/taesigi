@@ -20,11 +20,25 @@
 
   <div class="container">
 
-    <div class="upload-zone" id="dropZone">
-      <div class="icon">📄</div>
-      <p>감정평가서 PDF를 여기에 끌어다 놓거나<br>클릭하여 선택하세요</p>
-      <div class="file-name" id="fileName"></div>
-      <input type="file" id="fileInput" accept=".pdf,application/pdf" />
+    <div class="upload-row">
+      <div class="upload-col">
+        <div class="upload-label">감정평가서</div>
+        <div class="upload-zone" id="dropZone">
+          <div class="icon">📋</div>
+          <p>감정평가서 PDF<br>끌어다 놓거나 클릭</p>
+          <div class="file-name" id="fileName"></div>
+          <input type="file" id="fileInput" accept=".pdf,application/pdf" />
+        </div>
+      </div>
+      <div class="upload-col">
+        <div class="upload-label">공부서류 <span class="upload-note">원본 전자문서만 (스캔 불가)</span></div>
+        <div class="upload-zone upload-zone-gongbu" id="dropZoneGongbu">
+          <div class="icon">📑</div>
+          <p>토지대장 · 건축물대장<br>등기 · 토이계 등<br><small style="color:#aaa">여러 파일 동시 선택 가능</small></p>
+          <div class="file-name" id="fileNameGongbu"></div>
+          <input type="file" id="fileInputGongbu" accept=".pdf,application/pdf" multiple />
+        </div>
+      </div>
     </div>
 
     <div style="text-align:center;">
