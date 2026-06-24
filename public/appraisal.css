@@ -43,7 +43,7 @@ header {
 }
 .header-title { display: flex; align-items: center; gap: 16px; }
 
-/* 로고: 크림 배경에 자연스럽게 */
+/* 로고: 강아지 부분만 크롭 */
 .logo-wrap {
   width: 68px;
   height: 68px;
@@ -55,7 +55,7 @@ header {
 }
 .logo-img {
   width: 100%;
-  height: 100%;
+  height: 200%;           /* 이미지를 2배 높이로 → 위 절반(강아지)만 표시 */
   object-fit: cover;
   object-position: center top;
 }
