@@ -162,10 +162,20 @@ function renderResults(data) {
           <div class="finding-message">${escHtml(f.message)}</div>
           ${f.context ? `<div class="finding-context">${escHtml(f.context)}</div>` : ''}
           <div class="feedback-row">
-            <span style="font-size:0.74rem;color:#bbb;">탐지 결과:</span>
-            <button class="fb-btn" onclick="sendFeedback('correct','${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">👍 맞음</button>
-            <button class="fb-btn" onclick="sendFeedback('false_positive','${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">👎 오탐지</button>
+            <span class="fb-label">태식이 평가:</span>
+            <button class="fb-btn fb-good" onclick="onCorrect('${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">🦴 개껌!</button>
+            <button class="fb-btn fb-bad" onclick="onFalsePositive('${fid}')">🗞️ 신문지!</button>
             <span id="${fid}_sent" class="fb-sent"></span>
+          </div>
+          <div class="fp-form" id="${fid}_fp" style="display:none;">
+            <div class="fp-form-inner">
+              <span class="fp-dog">🐶💦</span>
+              <div style="flex:1;">
+                <div class="fp-title">태식이가 왜 틀렸나요?</div>
+                <textarea class="fp-textarea" id="${fid}_reason" placeholder="예) 해당 페이지는 비교사례가 아니라 대상물건 설명입니다"></textarea>
+                <button class="fp-send" onclick="sendFalsePositive('${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">훈육 완료 →</button>
+              </div>
+            </div>
           </div>
         </div>`;
     }).join('');
@@ -229,26 +239,47 @@ function toggleSection(id) {
   document.getElementById(id).classList.toggle('open');
 }
 
-// ── 피드백 전송 ─────────────────────────────────────────────
-async function sendFeedback(type, checker, fid, finding) {
+// ── 개껌 (정확한 탐지) ──────────────────────────────────────
+async function onCorrect(checker, fid, finding) {
   const sentEl = document.getElementById(fid + '_sent');
+  const fpForm = document.getElementById(fid + '_fp');
+  if (fpForm) fpForm.style.display = 'none';
   try {
     await fetch('/api/appraisal/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, checker, finding, fileName: currentFileName, context: finding.context }),
+      body: JSON.stringify({ type: 'correct', checker, finding, fileName: currentFileName }),
     });
-    const card = document.getElementById(fid);
-    if (card) {
-      card.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('active-correct', 'active-fp'));
-      const btn = card.querySelector(`button[onclick*="'${type}'"]`);
-      if (btn) btn.classList.add(type === 'correct' ? 'active-correct' : 'active-fp');
-    }
-    if (sentEl) sentEl.textContent = type === 'correct' ? '✓ 저장됨' : '✓ 오탐지 저장';
+    document.getElementById(fid)?.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('active-correct','active-fp'));
+    document.getElementById(fid)?.querySelector('.fb-good')?.classList.add('active-correct');
+    if (sentEl) sentEl.textContent = '🦴 냠냠 감사합니다!';
     loadAnalyzePanel();
-  } catch (e) {
-    if (sentEl) sentEl.textContent = '저장 실패';
-  }
+  } catch { if (sentEl) sentEl.textContent = '저장 실패'; }
+}
+
+// ── 신문지 (오탐지) - 이유 입력창 토글 ──────────────────────
+function onFalsePositive(fid) {
+  const fpForm = document.getElementById(fid + '_fp');
+  if (!fpForm) return;
+  fpForm.style.display = fpForm.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── 신문지 이유 입력 후 전송 ────────────────────────────────
+async function sendFalsePositive(checker, fid, finding) {
+  const sentEl = document.getElementById(fid + '_sent');
+  const reason = document.getElementById(fid + '_reason')?.value.trim() || '';
+  try {
+    await fetch('/api/appraisal/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'false_positive', checker, finding, description: reason, fileName: currentFileName }),
+    });
+    document.getElementById(fid + '_fp').style.display = 'none';
+    document.getElementById(fid)?.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('active-correct','active-fp'));
+    document.getElementById(fid)?.querySelector('.fb-bad')?.classList.add('active-fp');
+    if (sentEl) sentEl.textContent = '🗞️ 태식이가 반성합니다...';
+    loadAnalyzePanel();
+  } catch { if (sentEl) sentEl.textContent = '저장 실패'; }
 }
 
 // ── 놓친 케이스 저장 ────────────────────────────────────────

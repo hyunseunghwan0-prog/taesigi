@@ -337,21 +337,67 @@ header {
 }
 
 /* ── 피드백 버튼 ── */
-.feedback-row { display: flex; align-items: center; gap: 6px; margin-top: 9px; }
+.feedback-row { display: flex; align-items: center; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+.fb-label { font-size: 0.72rem; color: #ccc; }
 .fb-btn {
-  font-size: 0.74rem;
-  padding: 3px 10px;
+  font-size: 0.78rem;
+  padding: 4px 12px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: #f8fafc;
   cursor: pointer;
   color: var(--muted);
-  transition: background 0.15s;
+  transition: all 0.15s;
+  font-weight: 600;
 }
-.fb-btn:hover { background: var(--navy-light); }
-.fb-btn.active-correct { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
-.fb-btn.active-fp { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
-.fb-sent { font-size: 0.73rem; color: var(--muted); }
+.fb-btn:hover { transform: scale(1.05); }
+.fb-good:hover { background: #fff8e8; border-color: var(--gold); color: #8a6000; }
+.fb-bad:hover  { background: #f5f0e8; border-color: #9a7040; color: #6a4010; }
+.fb-btn.active-correct { background: #fff3cc; border-color: var(--gold); color: #7a5500; }
+.fb-btn.active-fp { background: #f0ebe0; border-color: #9a7040; color: #6a4010; }
+.fb-sent { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+
+/* ── 신문지 이유 입력 폼 ── */
+.fp-form {
+  margin-top: 10px;
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+}
+.fp-form-inner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #fdf9f2;
+  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid #e8dcc8;
+}
+.fp-dog { font-size: 1.6rem; line-height: 1; margin-top: 2px; }
+.fp-title { font-size: 0.8rem; font-weight: 700; color: #7a5500; margin-bottom: 6px; }
+.fp-textarea {
+  width: 100%;
+  border: 1px solid #d8c8a8;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.83rem;
+  min-height: 56px;
+  resize: vertical;
+  font-family: inherit;
+  background: #fff;
+}
+.fp-textarea:focus { outline: none; border-color: var(--gold); }
+.fp-send {
+  margin-top: 7px;
+  padding: 5px 16px;
+  background: #8a6000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.fp-send:hover { background: #6a4800; }
 
 /* ── 하단 피드백 존 ── */
 #feedbackZone {
