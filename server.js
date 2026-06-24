@@ -185,12 +185,12 @@ app.post('/api/appraisal/review', appraisalUpload.fields([
 });
 
 // 피드백 저장
-app.post('/api/appraisal/feedback', (req, res) => {
+app.post('/api/appraisal/feedback', async (req, res) => {
   try {
     const { type, checker, description, context, finding, fileName } = req.body;
     if (!type) return res.status(400).json({ error: 'type 필드가 필요합니다.' });
-    const record = feedbackStore.save({ type, checker, description, context, finding, fileName });
-    const stats = feedbackStore.getStats();
+    const record = await feedbackStore.save({ type, checker, description, context, finding, fileName });
+    const stats = await feedbackStore.getStats();
     res.json({ ok: true, id: record.id, stats });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -198,11 +198,10 @@ app.post('/api/appraisal/feedback', (req, res) => {
 });
 
 // 피드백 목록 + 통계
-app.get('/api/appraisal/feedback', (req, res) => {
+app.get('/api/appraisal/feedback', async (req, res) => {
   try {
-    const all = feedbackStore.loadAll();
-    const stats = feedbackStore.getStats();
-    res.json({ stats, items: all.slice(-50).reverse() }); // 최근 50개
+    const [all, stats] = await Promise.all([feedbackStore.loadAll(), feedbackStore.getStats()]);
+    res.json({ stats, items: all.slice(0, 50) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -211,13 +210,10 @@ app.get('/api/appraisal/feedback', (req, res) => {
 // Claude 패턴 분석 요청
 app.post('/api/appraisal/analyze', async (req, res) => {
   try {
-    const all = feedbackStore.loadAll();
+    const all = await feedbackStore.loadAll();
     if (all.length === 0) return res.status(400).json({ error: '피드백이 없습니다.' });
-
-    // 놓친 케이스 + 오탐지만 분석 (correct는 제외)
     const targets = all.filter(f => f.type !== 'correct');
     if (targets.length === 0) return res.status(400).json({ error: '분석할 피드백(놓친/오탐지)이 없습니다.' });
-
     const result = await analyzeFeedback(targets);
     res.json(result);
   } catch (err) {
