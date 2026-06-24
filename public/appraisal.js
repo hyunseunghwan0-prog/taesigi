@@ -46,23 +46,49 @@ function setFile(file) {
   feedbackZone.style.display = 'none';
 }
 
-// ── 공부서류 파일 선택 ─────────────────────────────────────────
+// ── 공부서류 파일 선택 (추가 방식) ────────────────────────────
+const gongbuFileList = document.getElementById('gongbuFileList');
+
 dropZoneGongbu.addEventListener('click', () => fileInputGongbu.click());
 dropZoneGongbu.addEventListener('dragover', e => { e.preventDefault(); dropZoneGongbu.classList.add('drag-over'); });
 dropZoneGongbu.addEventListener('dragleave', () => dropZoneGongbu.classList.remove('drag-over'));
 dropZoneGongbu.addEventListener('drop', e => {
   e.preventDefault(); dropZoneGongbu.classList.remove('drag-over');
-  setGongbuFiles(Array.from(e.dataTransfer.files));
+  addGongbuFiles(Array.from(e.dataTransfer.files));
 });
 fileInputGongbu.addEventListener('change', () => {
-  setGongbuFiles(Array.from(fileInputGongbu.files));
+  addGongbuFiles(Array.from(fileInputGongbu.files));
+  fileInputGongbu.value = ''; // 같은 파일 재선택 허용
 });
 
-function setGongbuFiles(files) {
+function addGongbuFiles(files) {
   const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
   if (pdfs.length === 0) return;
-  selectedGongbuFiles = pdfs;
-  fileNameGongbu.textContent = pdfs.map(f => f.name).join(', ');
+  // 중복 파일명 제외하고 추가
+  pdfs.forEach(f => {
+    if (!selectedGongbuFiles.find(existing => existing.name === f.name)) {
+      selectedGongbuFiles.push(f);
+    }
+  });
+  renderGongbuList();
+}
+
+function removeGongbuFile(name) {
+  selectedGongbuFiles = selectedGongbuFiles.filter(f => f.name !== name);
+  renderGongbuList();
+}
+
+function renderGongbuList() {
+  if (selectedGongbuFiles.length === 0) {
+    gongbuFileList.innerHTML = '';
+    return;
+  }
+  gongbuFileList.innerHTML = selectedGongbuFiles.map(f => `
+    <div class="gongbu-file-item">
+      <span class="gongbu-file-name">📄 ${escHtml(f.name)}</span>
+      <button class="gongbu-remove" onclick="removeGongbuFile('${escAttr(f.name)}')">✕</button>
+    </div>
+  `).join('');
 }
 
 // ── 검토 시작 ───────────────────────────────────────────────

@@ -235,6 +235,32 @@ header {
   background: var(--teal-light);
 }
 
+/* 공부서류 파일 목록 */
+#gongbuFileList { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.gongbu-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.gongbu-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gongbu-remove {
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.gongbu-remove:hover { color: var(--error); }
+
 /* ── 검토 버튼 ── */
 .btn-review {
   margin-top: 20px;
