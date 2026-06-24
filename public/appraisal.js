@@ -7,14 +7,16 @@ const progressBar = document.getElementById('progressBar');
 const progressLabel = document.getElementById('progressLabel');
 const resultsEl = document.getElementById('results');
 const summaryBar = document.getElementById('summaryBar');
-const checkerResults = document.getElementById('checkerResults');
+const sectionResults = document.getElementById('sectionResults');
 const errorBox = document.getElementById('errorBox');
-const missedPanel = document.getElementById('missedPanel');
-const analyzePanel = document.getElementById('analyzePanel');
+const feedbackZone = document.getElementById('feedbackZone');
 const analyzeBtn = document.getElementById('analyzeBtn');
 
 let selectedFile = null;
 let currentFileName = '';
+
+// 섹션 표시 순서
+const SECTION_ORDER = ['표지', '괄호감정표', '의견서', '요항표', '명세표', '위치도', '사진', '기타'];
 
 // ── 파일 선택 ──────────────────────────────────────────────
 dropZone.addEventListener('click', () => fileInput.click());
@@ -34,7 +36,7 @@ function setFile(file) {
   reviewBtn.disabled = false;
   clearError();
   resultsEl.classList.remove('visible');
-  missedPanel.style.display = 'none';
+  feedbackZone.style.display = 'none';
 }
 
 // ── 검토 시작 ───────────────────────────────────────────────
@@ -43,8 +45,7 @@ reviewBtn.addEventListener('click', async () => {
   reviewBtn.disabled = true;
   clearError();
   resultsEl.classList.remove('visible');
-  missedPanel.style.display = 'none';
-  analyzePanel.style.display = 'none';
+  feedbackZone.style.display = 'none';
   showProgress('PDF 업로드 중...', 20);
 
   const formData = new FormData();
@@ -73,55 +74,115 @@ reviewBtn.addEventListener('click', async () => {
 function renderResults(data) {
   const { summary, results } = data;
 
-  const sectionsHtml = summary.detectedSections?.length
-    ? `<div style="font-size:0.82rem;color:#666;margin-bottom:8px">감지된 섹션: ${summary.detectedSections.join(' → ')}</div>` : '';
+  // 전체 요약 뱃지
   const okMsg = summary.errorCount === 0 && summary.warningCount === 0
-    ? `<span class="badge ok">✅ 오류·경고 없음</span>` : '';
-
+    ? `<span class="badge ok">✅ 이상 없음</span>` : '';
   summaryBar.innerHTML = `
-    ${sectionsHtml}
     <span class="badge total">총 ${summary.pages}페이지</span>
-    <span class="badge total">검토 결과 ${summary.totalFindings}건</span>
     ${summary.errorCount > 0 ? `<span class="badge error">오류 ${summary.errorCount}건</span>` : ''}
     ${summary.warningCount > 0 ? `<span class="badge warning">경고 ${summary.warningCount}건</span>` : ''}
     ${okMsg}
   `;
 
-  checkerResults.innerHTML = results.map(r => {
-    const cards = r.findings.length === 0
-      ? `<div class="no-findings">✅ 이상 발견되지 않았습니다.</div>`
-      : r.findings.map((f, fi) => {
-          const fid = `f_${r.checker}_${fi}`.replace(/\s/g, '_');
-          return `
-          <div class="finding-card ${f.severity}" id="${fid}">
-            <div class="finding-header">
-              <span class="severity-tag ${f.severity}">${severityLabel(f.severity)}</span>
-              ${f.location ? `<span class="page-tag">${escHtml(f.location)}</span>` : ''}
-            </div>
-            <div class="finding-message">${escHtml(f.message)}</div>
-            ${f.context ? `<div class="finding-context">${escHtml(f.context)}</div>` : ''}
-            <div class="feedback-row">
-              <span style="font-size:0.78rem;color:#aaa;">이 결과가:</span>
-              <button class="fb-btn" onclick="sendFeedback('correct','${escAttr(r.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})" title="정확한 탐지">👍 맞음</button>
-              <button class="fb-btn" onclick="sendFeedback('false_positive','${escAttr(r.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})" title="오탐지">👎 오탐지</button>
-            </div>
-            <div id="${fid}_sent" class="fb-sent"></div>
-          </div>`;
-        }).join('');
+  // findings를 섹션별로 그룹화
+  const allFindings = results.flatMap(r =>
+    r.findings.map(f => ({ ...f, checker: r.checker }))
+  );
+  const sectionMap = groupBySection(allFindings, summary.detectedSections || []);
+
+  // 섹션 순서대로 렌더
+  const orderedSections = [
+    ...SECTION_ORDER.filter(s => sectionMap[s]),
+    ...Object.keys(sectionMap).filter(s => !SECTION_ORDER.includes(s)),
+  ];
+
+  sectionResults.innerHTML = orderedSections.map((secName, idx) => {
+    const items = sectionMap[secName];
+    const errCnt = items.filter(f => f.severity === 'error').length;
+    const warnCnt = items.filter(f => f.severity === 'warning').length;
+    const infoCnt = items.filter(f => f.severity === 'info').length;
+
+    let pillClass = 'ok', pillText = '이상없음';
+    if (errCnt > 0) { pillClass = 'error'; pillText = `오류 ${errCnt}건`; }
+    else if (warnCnt > 0) { pillClass = 'warning'; pillText = `경고 ${warnCnt}건`; }
+    else if (infoCnt > 0) { pillClass = 'info'; pillText = `확인필요 ${infoCnt}건`; }
+
+    const findingsHtml = items.length === 0 ? '' : items.map((f, fi) => {
+      const fid = `f_${secName}_${fi}`;
+      return `
+        <div class="finding-item ${f.severity}" id="${fid}">
+          <div class="finding-header">
+            <span class="severity-tag ${f.severity}">${severityLabel(f.severity)}</span>
+            ${f.location ? `<span class="page-tag">${escHtml(f.location)}</span>` : ''}
+          </div>
+          <div class="finding-message">${escHtml(f.message)}</div>
+          ${f.context ? `<div class="finding-context">${escHtml(f.context)}</div>` : ''}
+          <div class="feedback-row">
+            <span style="font-size:0.74rem;color:#bbb;">탐지 결과:</span>
+            <button class="fb-btn" onclick="sendFeedback('correct','${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">👍 맞음</button>
+            <button class="fb-btn" onclick="sendFeedback('false_positive','${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">👎 오탐지</button>
+            <span id="${fid}_sent" class="fb-sent"></span>
+          </div>
+        </div>`;
+    }).join('');
+
+    // 이상없음 섹션은 기본 닫힘, 오류/경고는 기본 열림
+    const openClass = (errCnt > 0 || warnCnt > 0) ? 'open' : '';
 
     return `
-      <div class="checker-section">
-        <div class="checker-title">${escHtml(r.checker)}<span class="count">${r.findings.length}건</span></div>
-        ${r.description ? `<p style="font-size:0.83rem;color:#666;margin-bottom:10px">${escHtml(r.description)}</p>` : ''}
-        ${r.error ? `<div class="error-box">체커 오류: ${escHtml(r.error)}</div>` : cards}
+      <div class="section-block ${openClass}" id="sec_${idx}">
+        <div class="section-header" onclick="toggleSection('sec_${idx}')">
+          <div class="section-left">
+            <span class="section-name">${escHtml(secName)}</span>
+          </div>
+          <div class="section-status">
+            <span class="status-pill ${pillClass}">${pillText}</span>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        <div class="section-body">
+          ${items.length === 0
+            ? '<div style="padding:10px 0;font-size:0.88rem;color:#888;">감지된 항목이 없습니다.</div>'
+            : findingsHtml}
+        </div>
       </div>`;
   }).join('');
 
   resultsEl.classList.add('visible');
-
-  // 검토 완료 후 놓친 케이스 패널 + 분석 패널 표시
-  missedPanel.style.display = 'block';
+  feedbackZone.style.display = 'block';
   loadAnalyzePanel();
+}
+
+// ── 섹션 그룹화 ─────────────────────────────────────────────
+function groupBySection(findings, detectedSections) {
+  const map = {};
+
+  // 감지된 섹션은 빈 배열로 초기화 (이상없음 표시용)
+  detectedSections.forEach(s => { if (!map[s]) map[s] = []; });
+
+  findings.forEach(f => {
+    const loc = f.location || '';
+    let sec = '기타';
+
+    for (const s of SECTION_ORDER) {
+      if (loc.includes(s)) { sec = s; break; }
+    }
+    // 의견서↔명세표 같은 교차 항목은 의견서로 분류
+    if (loc.includes('↔')) {
+      for (const s of SECTION_ORDER) {
+        if (loc.includes(s)) { sec = s; break; }
+      }
+    }
+
+    if (!map[sec]) map[sec] = [];
+    map[sec].push(f);
+  });
+
+  return map;
+}
+
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('open');
 }
 
 // ── 피드백 전송 ─────────────────────────────────────────────
@@ -135,13 +196,11 @@ async function sendFeedback(type, checker, fid, finding) {
     });
     const card = document.getElementById(fid);
     if (card) {
-      card.querySelectorAll('.fb-btn').forEach(b => {
-        b.classList.remove('active-correct', 'active-fp');
-      });
+      card.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('active-correct', 'active-fp'));
       const btn = card.querySelector(`button[onclick*="'${type}'"]`);
       if (btn) btn.classList.add(type === 'correct' ? 'active-correct' : 'active-fp');
     }
-    if (sentEl) sentEl.textContent = type === 'correct' ? '✓ 저장됨' : '✓ 오탐지로 저장됨';
+    if (sentEl) sentEl.textContent = type === 'correct' ? '✓ 저장됨' : '✓ 오탐지 저장';
     loadAnalyzePanel();
   } catch (e) {
     if (sentEl) sentEl.textContent = '저장 실패';
@@ -160,7 +219,7 @@ async function submitMissed() {
       body: JSON.stringify({ type: 'missed', description: desc, fileName: currentFileName }),
     });
     document.getElementById('missedDesc').value = '';
-    sentEl.textContent = '✓ 저장됨';
+    sentEl.textContent = '✓ 저장됐습니다. 감사합니다!';
     setTimeout(() => { sentEl.textContent = ''; }, 3000);
     loadAnalyzePanel();
   } catch (e) {
@@ -176,11 +235,10 @@ async function loadAnalyzePanel() {
     const { stats } = data;
     const actionable = (stats.byType.missed || 0) + (stats.byType.false_positive || 0);
     document.getElementById('feedbackStats').innerHTML =
-      `누적 피드백: 전체 <b>${stats.total}</b>건 (놓친 케이스 <b>${stats.byType.missed || 0}</b>건, 오탐지 <b>${stats.byType.false_positive || 0}</b>건, 정확 <b>${stats.byType.correct || 0}</b>건)`;
+      `누적 피드백: 전체 <b>${stats.total}</b>건 (놓친 케이스 <b>${stats.byType.missed || 0}</b>, 오탐지 <b>${stats.byType.false_positive || 0}</b>, 정확 <b>${stats.byType.correct || 0}</b>)`;
     analyzeBtn.disabled = actionable === 0;
     analyzeBtn.textContent = actionable > 0
-      ? `AI 패턴 분석 요청 (${actionable}건 분석)` : 'AI 패턴 분석 (피드백 없음)';
-    analyzePanel.style.display = 'block';
+      ? `AI 패턴 분석 (${actionable}건)` : 'AI 패턴 분석 (피드백 없음)';
   } catch {}
 }
 
@@ -197,12 +255,9 @@ analyzeBtn.addEventListener('click', async () => {
     const res = await fetch('/api/appraisal/analyze', { method: 'POST' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
-
-    // 마크다운 코드블록 제거 후 일반 텍스트 표시
     const withoutCode = data.suggestions.replace(/```[\s\S]*?```/g, '[코드 블록 아래 참조]');
     textEl.textContent = withoutCode;
     resultEl.style.display = 'block';
-
     if (data.proposedCode) {
       document.getElementById('proposedCode').textContent = data.proposedCode;
       codeEl.style.display = 'block';
@@ -232,9 +287,9 @@ function showProgress(label, pct) {
   progressBar.style.width = pct + '%';
   progressLabel.textContent = label;
 }
-function showError(msg) { errorBox.innerHTML = `<div class="error-box">⚠️ ${msg}</div>`; }
+function showError(msg) { errorBox.innerHTML = `<div class="error-box">⚠️ ${escHtml(msg)}</div>`; }
 function clearError() { errorBox.innerHTML = ''; }
-function severityLabel(s) { return { error: '오류', warning: '경고', info: '참고' }[s] || s; }
+function severityLabel(s) { return { error: '오류', warning: '경고', info: '확인필요' }[s] || s; }
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
