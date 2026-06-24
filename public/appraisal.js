@@ -104,35 +104,64 @@ reviewBtn.addEventListener('click', async () => {
   formData.append('pdf', selectedFile);
   selectedGongbuFiles.forEach(f => formData.append('gongbu', f));
 
-  const PROGRESS_STEPS = [
-    [20,  'PDF 텍스트 추출 중...'],
-    [35,  '괄호감정표 검토 중...'],
-    [50,  '의견서 계산 검산 중...'],
-    [62,  '개별요인비교치 검증 중...'],
-    [74,  '요항표 · 명세표 교차 확인 중...'],
-    [85,  '위치도 사례 일치 확인 중...'],
-    [93,  '결과 정리 중...'],
-  ];
-  let stepIdx = 0;
-  const stepTimer = setInterval(() => {
-    if (stepIdx < PROGRESS_STEPS.length) {
-      const [pct, label] = PROGRESS_STEPS[stepIdx++];
-      showProgress(label, pct);
-    }
-  }, 900);
+  // SSE 스트리밍으로 결과 수신
+  const streamResults = [];
+  let summary = null;
 
   try {
-    const res = await fetch('/api/appraisal/review', { method: 'POST', body: formData });
-    clearInterval(stepTimer);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || '서버 오류');
+    const response = await fetch('/api/appraisal/review', { method: 'POST', body: formData });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || '서버 오류');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    showProgress('서버 연결됨...', 5);
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE 이벤트 파싱
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // 마지막 미완성 줄 보관
+
+      let currentEvent = null;
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7).trim();
+        } else if (line.startsWith('data: ') && currentEvent) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (currentEvent === 'progress') {
+              showProgress(data.label, data.pct);
+            } else if (currentEvent === 'checkerResult') {
+              streamResults.push(data);
+            } else if (currentEvent === 'done') {
+              summary = data.summary;
+            } else if (currentEvent === 'error') {
+              throw new Error(data.message);
+            }
+          } catch (e) {
+            if (e.message !== 'Unexpected token') throw e;
+          }
+          currentEvent = null;
+        }
+      }
+    }
+
+    if (!summary) throw new Error('결과를 받지 못했습니다.');
     showProgress('검토 완료!', 100);
     setTimeout(() => {
       progressWrap.classList.remove('visible');
-      renderResults(data);
-    }, 400);
+      renderResults({ summary, results: streamResults });
+    }, 300);
+
   } catch (err) {
-    clearInterval(stepTimer);
     progressWrap.classList.remove('visible');
     showError(err.message);
   } finally {

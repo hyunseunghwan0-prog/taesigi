@@ -130,41 +130,47 @@ app.post('/api/appraisal/review', appraisalUpload.fields([
 ]), async (req, res) => {
   const pdfFile = req.files?.pdf?.[0];
   if (!pdfFile) return res.status(400).json({ error: 'PDF 파일을 업로드해주세요.' });
-
   const gongbuFiles = req.files?.gongbu || [];
 
+  // SSE 헤더
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  function send(type, data) {
+    res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+  }
+
   try {
+    send('progress', { label: '파일 텍스트 추출 중...', pct: 5 });
     const isDocx = pdfFile.originalname.toLowerCase().endsWith('.docx') || pdfFile.originalname.toLowerCase().endsWith('.doc');
     const { pages } = isDocx ? await extractDocx(pdfFile.path) : await extractPdf(pdfFile.path);
-    const { results, detectedSections } = await runAllCheckers(pages);
 
-    // 공부서류 처리
+    // 공부서류 파싱
     let publicRecords = [];
-    let publicRecordResult = null;
     if (gongbuFiles.length > 0) {
+      send('progress', { label: '공부서류 분석 중...', pct: 12 });
       for (const gf of gongbuFiles) {
         try {
           const { pages: gPages } = await extractPdf(gf.path);
           const text = gPages.map(p => p.text).join('\n');
-          const parsed = parsePublicRecord(text);
-          publicRecords.push(parsed);
-        } catch (e) {
-          console.error('공부서류 파싱 오류:', e.message);
-        }
+          publicRecords.push(parsePublicRecord(text));
+        } catch (e) { console.error('공부서류 파싱 오류:', e.message); }
       }
-      const gongbuFindings = publicRecordChecker.check(pages, publicRecords);
-      publicRecordResult = {
-        checker: publicRecordChecker.name,
-        description: publicRecordChecker.description,
-        findings: gongbuFindings,
-        detectedDocs: publicRecords.map(r => r.label),
-      };
     }
 
-    const allResults = publicRecordResult ? [...results, publicRecordResult] : results;
-    const allFindings = allResults.flatMap(r => r.findings);
+    send('progress', { label: '섹션 감지 중...', pct: 18 });
 
-    res.json({
+    const { results, detectedSections } = await runAllCheckers(pages, {
+      publicRecords,
+      onProgress: ({ label, pct, checkerResult }) => {
+        send('progress', { label, pct });
+        if (checkerResult) send('checkerResult', checkerResult);
+      },
+    });
+
+    const allFindings = results.flatMap(r => r.findings);
+    send('done', {
       summary: {
         pages: pages.length,
         totalFindings: allFindings.length,
@@ -173,12 +179,12 @@ app.post('/api/appraisal/review', appraisalUpload.fields([
         detectedSections,
         gongbuDocs: publicRecords.map(r => r.label),
       },
-      results: allResults,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message || '검토 중 오류가 발생했습니다.' });
+    send('error', { message: err.message || '검토 중 오류가 발생했습니다.' });
   } finally {
+    res.end();
     try { fs.unlinkSync(pdfFile.path); } catch {}
     gongbuFiles.forEach(f => { try { fs.unlinkSync(f.path); } catch {} });
   }
