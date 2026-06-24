@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { convertDocx } = require('./lib/converter');
 const { extractPdf } = require('./lib/appraisal/pdfExtractor');
+const { extractDocx } = require('./lib/appraisal/docxExtractor');
 const { runAllCheckers } = require('./lib/appraisal/index');
 const { parsePublicRecord } = require('./lib/appraisal/publicRecordParser');
 const publicRecordChecker = require('./lib/appraisal/checkers/publicRecordChecker');
@@ -117,11 +118,9 @@ const appraisalUpload = multer({
   dest: 'uploads/',
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
-      cb(null, true);
-    } else {
-      cb(new Error('PDF 파일만 업로드 가능합니다.'));
-    }
+    const name = file.originalname.toLowerCase();
+    const ok = name.endsWith('.pdf') || name.endsWith('.docx') || name.endsWith('.doc');
+    ok ? cb(null, true) : cb(new Error('PDF 또는 Word(docx) 파일만 업로드 가능합니다.'));
   },
 });
 
@@ -135,7 +134,8 @@ app.post('/api/appraisal/review', appraisalUpload.fields([
   const gongbuFiles = req.files?.gongbu || [];
 
   try {
-    const { pages } = await extractPdf(pdfFile.path);
+    const isDocx = pdfFile.originalname.toLowerCase().endsWith('.docx') || pdfFile.originalname.toLowerCase().endsWith('.doc');
+    const { pages } = isDocx ? await extractDocx(pdfFile.path) : await extractPdf(pdfFile.path);
     const { results, detectedSections } = await runAllCheckers(pages);
 
     // 공부서류 처리

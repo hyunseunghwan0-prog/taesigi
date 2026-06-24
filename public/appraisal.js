@@ -20,7 +20,7 @@ let selectedGongbuFiles = [];
 let currentFileName = '';
 
 // 섹션 표시 순서
-const SECTION_ORDER = ['표지', '괄호감정표', '의견서', '요항표', '명세표', '위치도', '사진', '기타'];
+const SECTION_ORDER = ['표지', '괄호감정표', '담보가치총괄표', '의견서', '요항표', '명세표', '위치도', '사진', '기타'];
 
 // ── 감정평가서 파일 선택 ───────────────────────────────────────
 dropZone.addEventListener('click', () => fileInput.click());
@@ -33,7 +33,10 @@ dropZone.addEventListener('drop', e => {
 fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
 
 function setFile(file) {
-  if (!file.name.toLowerCase().endsWith('.pdf')) { showError('PDF 파일만 업로드 가능합니다.'); return; }
+  const name = file.name.toLowerCase();
+  if (!name.endsWith('.pdf') && !name.endsWith('.docx') && !name.endsWith('.doc')) {
+    showError('PDF 또는 Word(.docx) 파일만 업로드 가능합니다.'); return;
+  }
   selectedFile = file;
   currentFileName = file.name;
   fileName.textContent = `${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
