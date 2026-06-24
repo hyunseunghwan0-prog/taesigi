@@ -51,18 +51,35 @@ reviewBtn.addEventListener('click', async () => {
   const formData = new FormData();
   formData.append('pdf', selectedFile);
 
+  const PROGRESS_STEPS = [
+    [20,  'PDF 텍스트 추출 중...'],
+    [35,  '괄호감정표 검토 중...'],
+    [50,  '의견서 계산 검산 중...'],
+    [62,  '개별요인비교치 검증 중...'],
+    [74,  '요항표 · 명세표 교차 확인 중...'],
+    [85,  '위치도 사례 일치 확인 중...'],
+    [93,  '결과 정리 중...'],
+  ];
+  let stepIdx = 0;
+  const stepTimer = setInterval(() => {
+    if (stepIdx < PROGRESS_STEPS.length) {
+      const [pct, label] = PROGRESS_STEPS[stepIdx++];
+      showProgress(label, pct);
+    }
+  }, 900);
+
   try {
-    showProgress('텍스트 추출 중...', 50);
     const res = await fetch('/api/appraisal/review', { method: 'POST', body: formData });
-    showProgress('검토 항목 분석 중...', 80);
+    clearInterval(stepTimer);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '서버 오류');
-    showProgress('완료', 100);
+    showProgress('검토 완료!', 100);
     setTimeout(() => {
       progressWrap.classList.remove('visible');
       renderResults(data);
     }, 400);
   } catch (err) {
+    clearInterval(stepTimer);
     progressWrap.classList.remove('visible');
     showError(err.message);
   } finally {
