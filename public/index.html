@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보고서 자동 변환기 | 태평양감정평가법인</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">㈜태평양감정평가법인</div>
+      <h1>보고서 자동 변환기</h1>
+      <p class="subtitle">기존 보고서 양식을 참고하여 새로운 데이터로 보고서를 자동 생성합니다</p>
+    </header>
+
+    <main>
+      <form id="convertForm">
+
+        <!-- Step 1: Template -->
+        <section class="upload-section">
+          <div class="step-badge">STEP 1</div>
+          <h2>참고 양식 선택</h2>
+          <p class="desc">구조와 스타일을 참고할 기존 보고서를 선택하거나 직접 업로드하세요</p>
+
+          <!-- Sample templates -->
+          <div class="template-options" id="templateOptions">
+            <div class="loading-samples">샘플 불러오는 중...</div>
+          </div>
+
+          <!-- Template preview panel -->
+          <div class="template-preview-panel" id="templatePreviewPanel" style="display:none">
+            <div class="preview-header">
+              <span id="previewTitle"></span>
+              <button class="preview-close" onclick="closePreview()">✕</button>
+            </div>
+            <pre class="preview-content" id="previewContent"></pre>
+          </div>
+
+          <!-- Custom upload option -->
+          <div class="custom-upload-row">
+            <label class="template-card custom-card" id="customTemplateCard">
+              <input type="radio" name="templateChoice" value="custom" id="templateChoiceCustom">
+              <div class="card-icon">📤</div>
+              <div class="card-body">
+                <div class="card-title">직접 업로드</div>
+                <div class="card-desc">다른 보고서 양식을 업로드하세요 (DOCX)</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- File drop zone (shown only when "custom" selected) -->
+          <div class="drop-zone" id="templateZone" style="display:none">
+            <div class="drop-icon">📄</div>
+            <p>클릭하거나 파일을 여기로 드래그하세요</p>
+            <p class="hint">DOCX 파일만 지원</p>
+            <input type="file" id="templateInput" name="template" accept=".docx" hidden>
+          </div>
+          <div id="templateFilePreview"></div>
+        </section>
+
+        <!-- Step 2: Inputs -->
+        <section class="upload-section">
+          <div class="step-badge">STEP 2</div>
+          <h2>인풋 데이터 업로드</h2>
+          <p class="desc">새 보고서에 담을 내용이 있는 파일을 업로드하세요 (최대 5개)</p>
+          <div class="drop-zone" id="inputZone">
+            <div class="drop-icon">📂</div>
+            <p>클릭하거나 파일을 여기로 드래그하세요</p>
+            <p class="hint">PDF, DOCX, TXT 지원 · 최대 5개</p>
+            <input type="file" id="inputsInput" name="inputs" accept=".pdf,.docx,.txt" multiple hidden>
+          </div>
+          <div class="file-list" id="inputPreview"></div>
+        </section>
+
+        <!-- Convert Button -->
+        <div class="action-area">
+          <button type="submit" id="convertBtn" class="btn-primary" disabled>
+            <span class="btn-icon">⚡</span>
+            <span>보고서 생성하기</span>
+          </button>
+          <p class="action-hint">AI가 양식 구조를 분석하고 새 보고서를 작성합니다 (약 30초~1분 소요)</p>
+        </div>
+      </form>
+
+      <!-- Progress -->
+      <div class="progress-area" id="progressArea" style="display:none">
+        <div class="progress-card">
+          <div class="spinner"></div>
+          <div class="progress-steps">
+            <div class="progress-step" id="step-parse">📖 파일 분석 중...</div>
+            <div class="progress-step" id="step-ai">🤖 AI 보고서 작성 중...</div>
+            <div class="progress-step" id="step-gen">📝 DOCX 생성 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div class="error-area" id="errorArea" style="display:none">
+        <div class="error-card">
+          <span class="error-icon">⚠️</span>
+          <p id="errorMsg"></p>
+          <button onclick="resetForm()" class="btn-secondary">다시 시도</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

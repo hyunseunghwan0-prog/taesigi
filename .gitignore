@@ -1,0 +1,26 @@
+node_modules/
+uploads/
+data/
+.env
+*.pdf
+
+# 디버그/임시 파일
+debug_*.txt
+debug_*.json
+debug_*.xml
+hdr_*.txt
+*.dump.txt
+revised_styles.txt
+styles_list.txt
+styles_out.txt
+style_dump.txt
+table_dump.txt
+desired_output.txt
+doc1.txt
+doc2.txt
+check_styles.js
+dump_styles.js
+inspect_revised.js
+
+# Claude Code 로컬 설정
+.claude/settings.local.json

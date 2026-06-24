@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>감정평가서 검토</title>
+  <link rel="stylesheet" href="appraisal.css" />
+</head>
+<body>
+  <header>
+    <div>
+      <h1>📋 감정평가서 검토 프로그램</h1>
+    </div>
+    <a href="/">← 메인으로</a>
+  </header>
+
+  <div class="container">
+
+    <div class="upload-zone" id="dropZone">
+      <div class="icon">📄</div>
+      <p>감정평가서 PDF를 여기에 끌어다 놓거나<br>클릭하여 선택하세요</p>
+      <div class="file-name" id="fileName"></div>
+      <input type="file" id="fileInput" accept=".pdf,application/pdf" />
+    </div>
+
+    <div style="text-align:center;">
+      <button class="btn" id="reviewBtn" disabled>검토 시작</button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-label" id="progressLabel">PDF 분석 중...</div>
+    </div>
+
+    <div id="errorBox"></div>
+
+    <!-- 놓친 케이스 직접 추가 -->
+    <div id="missedPanel" style="display:none; margin-top:20px;">
+      <div class="missed-form">
+        <strong style="font-size:0.9rem;">➕ 놓친 오류 직접 추가</strong>
+        <p style="font-size:0.82rem;color:#555;margin:6px 0 8px">프로그램이 잡지 못한 오류를 설명해주세요.</p>
+        <textarea id="missedDesc" placeholder="예) 6페이지 획지조건 요인치는 0.95인데 텍스트엔 우세라고 되어있음"></textarea>
+        <div>
+          <button class="send-btn" onclick="submitMissed()">저장</button>
+          <span id="missedSent" style="font-size:0.8rem;color:#1e8449;margin-left:8px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="results">
+      <div class="summary-bar" id="summaryBar"></div>
+      <div id="checkerResults"></div>
+    </div>
+
+    <!-- 패턴 분석 패널 -->
+    <div class="analyze-panel" id="analyzePanel" style="display:none;">
+      <h3>🤖 패턴 분석 · 체커 업그레이드</h3>
+      <p>누적된 피드백을 AI가 분석하여 새 체커 코드를 제안합니다.<br>
+         제안된 코드를 검토 후 <code>lib/appraisal/checkers/</code> 에 저장하면 다음 검토부터 자동 적용됩니다.</p>
+      <div id="feedbackStats" style="font-size:0.85rem;color:#555;margin-bottom:12px;"></div>
+      <button class="btn" id="analyzeBtn" style="margin-top:0;">AI 패턴 분석 요청</button>
+      <div id="analyzeResult" style="display:none;">
+        <div class="analyze-result" id="analyzeText"></div>
+        <div id="codeProposal" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+            <strong style="font-size:0.9rem;">제안된 체커 코드</strong>
+            <button class="copy-btn" onclick="copyCode()">복사</button>
+          </div>
+          <div class="code-block" id="proposedCode"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="appraisal.js"></script>
+</body>
+</html>
