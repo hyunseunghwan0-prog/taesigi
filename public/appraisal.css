@@ -419,7 +419,9 @@ header {
 .fb-bad:hover  { background: #f5f0e8; border-color: #9a7040; color: #6a4010; }
 .fb-btn.active-correct { background: #fff3cc; border-color: var(--gold); color: #7a5500; }
 .fb-btn.active-fp { background: #f0ebe0; border-color: #9a7040; color: #6a4010; }
-.fb-sent { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+.fb-sent { font-size: 0.75rem; font-style: italic; }
+.fb-sent-ok  { color: var(--ok); font-weight: 600; }
+.fb-sent-err { color: var(--error); }
 
 /* ── 신문지 이유 입력 폼 ── */
 .fp-form {

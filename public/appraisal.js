@@ -220,9 +220,9 @@ function renderResults(data) {
           <div class="finding-message">${escHtml(f.message)}</div>
           ${f.context ? `<div class="finding-context">${escHtml(f.context)}</div>` : ''}
           <div class="feedback-row">
-            <span class="fb-label">태식이 평가:</span>
-            <button class="fb-btn fb-good" onclick="onCorrect('${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">🦴 개껌!</button>
-            <button class="fb-btn fb-bad" onclick="onFalsePositive('${fid}')">🗞️ 신문지!</button>
+            <span class="fb-label">태식이:</span>
+            <button class="fb-btn fb-good" id="${fid}_good" onclick="onCorrect('${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">잘했어 태식아 👍</button>
+            <button class="fb-btn fb-bad" id="${fid}_bad" onclick="onFalsePositive('${fid}')">분발해 태식아 💪</button>
             <span id="${fid}_sent" class="fb-sent"></span>
           </div>
           <div class="fp-form" id="${fid}_fp" style="display:none;">
@@ -297,35 +297,47 @@ function toggleSection(id) {
   document.getElementById(id).classList.toggle('open');
 }
 
-// ── 개껌 (정확한 탐지) ──────────────────────────────────────
+// ── 잘했어 태식아 (정확한 탐지) ─────────────────────────────
 async function onCorrect(checker, fid, finding) {
   const sentEl = document.getElementById(fid + '_sent');
   const fpForm = document.getElementById(fid + '_fp');
   if (fpForm) fpForm.style.display = 'none';
+
+  const goodBtn = document.getElementById(fid + '_good');
+  const badBtn = document.getElementById(fid + '_bad');
+  if (goodBtn) { goodBtn.disabled = true; goodBtn.textContent = '저장 중...'; }
+
   try {
     await fetch('/api/appraisal/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'correct', checker, finding, fileName: currentFileName }),
     });
-    document.getElementById(fid)?.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('active-correct','active-fp'));
-    document.getElementById(fid)?.querySelector('.fb-good')?.classList.add('active-correct');
-    if (sentEl) sentEl.textContent = '🦴 냠냠 감사합니다!';
+    if (goodBtn) { goodBtn.textContent = '✓ 잘했어 태식아 👍'; goodBtn.classList.add('active-correct'); }
+    if (badBtn) badBtn.style.display = 'none';
+    if (sentEl) { sentEl.textContent = '태식이가 고마워해요!'; sentEl.className = 'fb-sent fb-sent-ok'; }
     loadAnalyzePanel();
-  } catch { if (sentEl) sentEl.textContent = '저장 실패'; }
+  } catch {
+    if (goodBtn) { goodBtn.disabled = false; goodBtn.textContent = '잘했어 태식아 👍'; }
+    if (sentEl) { sentEl.textContent = '저장 실패 — 다시 눌러주세요'; sentEl.className = 'fb-sent fb-sent-err'; }
+  }
 }
 
-// ── 신문지 (오탐지) - 이유 입력창 토글 ──────────────────────
+// ── 분발해 태식아 (오탐지) - 이유 입력창 토글 ───────────────
 function onFalsePositive(fid) {
   const fpForm = document.getElementById(fid + '_fp');
   if (!fpForm) return;
   fpForm.style.display = fpForm.style.display === 'none' ? 'block' : 'none';
 }
 
-// ── 신문지 이유 입력 후 전송 ────────────────────────────────
+// ── 오탐지 이유 입력 후 전송 ────────────────────────────────
 async function sendFalsePositive(checker, fid, finding) {
   const sentEl = document.getElementById(fid + '_sent');
+  const sendBtn = document.querySelector(`#${fid}_fp .fp-send`);
   const reason = document.getElementById(fid + '_reason')?.value.trim() || '';
+
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '저장 중...'; }
+
   try {
     await fetch('/api/appraisal/feedback', {
       method: 'POST',
@@ -333,11 +345,16 @@ async function sendFalsePositive(checker, fid, finding) {
       body: JSON.stringify({ type: 'false_positive', checker, finding, description: reason, fileName: currentFileName }),
     });
     document.getElementById(fid + '_fp').style.display = 'none';
-    document.getElementById(fid)?.querySelectorAll('.fb-btn').forEach(b => b.classList.remove('active-correct','active-fp'));
-    document.getElementById(fid)?.querySelector('.fb-bad')?.classList.add('active-fp');
-    if (sentEl) sentEl.textContent = '🗞️ 태식이가 반성합니다...';
+    const badBtn = document.getElementById(fid + '_bad');
+    const goodBtn = document.getElementById(fid + '_good');
+    if (badBtn) { badBtn.textContent = '✓ 분발해 태식아 💪'; badBtn.classList.add('active-fp'); badBtn.disabled = true; }
+    if (goodBtn) goodBtn.style.display = 'none';
+    if (sentEl) { sentEl.textContent = '태식이가 분발할게요!'; sentEl.className = 'fb-sent fb-sent-ok'; }
     loadAnalyzePanel();
-  } catch { if (sentEl) sentEl.textContent = '저장 실패'; }
+  } catch {
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '훈육 완료 →'; }
+    if (sentEl) { sentEl.textContent = '저장 실패 — 다시 눌러주세요'; sentEl.className = 'fb-sent fb-sent-err'; }
+  }
 }
 
 // ── 놓친 케이스 저장 ────────────────────────────────────────
