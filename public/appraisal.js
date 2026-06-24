@@ -18,6 +18,8 @@ const analyzeBtn = document.getElementById('analyzeBtn');
 let selectedFile = null;
 let selectedGongbuFiles = [];
 let currentFileName = '';
+// finding 객체를 id 기반으로 보관 (onclick 속성에 JSON 넣으면 특수문자 충돌)
+const _findings = {};
 
 // 섹션 표시 순서
 const SECTION_ORDER = ['표지', '괄호감정표', '담보가치총괄표', '의견서', '요항표', '명세표', '위치도', '사진', '기타'];
@@ -210,7 +212,8 @@ function renderResults(data) {
     else if (infoCnt > 0) { pillClass = 'info'; pillText = `확인필요 ${infoCnt}건`; }
 
     const findingsHtml = items.length === 0 ? '' : items.map((f, fi) => {
-      const fid = `f_${secName}_${fi}`;
+      const fid = `f_${secName}_${fi}`.replace(/[^a-zA-Z0-9_]/g, '_');
+      _findings[fid] = f; // JSON-in-onclick 대신 Map에 보관
       return `
         <div class="finding-item ${f.severity}" id="${fid}">
           <div class="finding-header">
@@ -221,7 +224,7 @@ function renderResults(data) {
           ${f.context ? `<div class="finding-context">${escHtml(f.context)}</div>` : ''}
           <div class="feedback-row">
             <span class="fb-label">태식이:</span>
-            <button class="fb-btn fb-good" id="${fid}_good" onclick="onCorrect('${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">잘했어 태식아 👍</button>
+            <button class="fb-btn fb-good" id="${fid}_good" onclick="onCorrect('${fid}')">잘했어 태식아 👍</button>
             <button class="fb-btn fb-bad" id="${fid}_bad" onclick="onFalsePositive('${fid}')">분발해 태식아 💪</button>
             <span id="${fid}_sent" class="fb-sent"></span>
           </div>
@@ -231,7 +234,7 @@ function renderResults(data) {
               <div style="flex:1;">
                 <div class="fp-title">태식이가 왜 틀렸나요?</div>
                 <textarea class="fp-textarea" id="${fid}_reason" placeholder="예) 해당 페이지는 비교사례가 아니라 대상물건 설명입니다"></textarea>
-                <button class="fp-send" onclick="sendFalsePositive('${escAttr(f.checker)}','${fid}',${JSON.stringify(f).replace(/'/g,"\\'")})">훈육 완료 →</button>
+                <button class="fp-send" id="${fid}_fpbtn" onclick="sendFalsePositive('${fid}')">훈육 완료 →</button>
               </div>
             </div>
           </div>
@@ -298,7 +301,9 @@ function toggleSection(id) {
 }
 
 // ── 잘했어 태식아 (정확한 탐지) ─────────────────────────────
-async function onCorrect(checker, fid, finding) {
+async function onCorrect(fid) {
+  const finding = _findings[fid];
+  if (!finding) return;
   const sentEl = document.getElementById(fid + '_sent');
   const fpForm = document.getElementById(fid + '_fp');
   if (fpForm) fpForm.style.display = 'none';
@@ -311,11 +316,11 @@ async function onCorrect(checker, fid, finding) {
     await fetch('/api/appraisal/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'correct', checker, finding, fileName: currentFileName }),
+      body: JSON.stringify({ type: 'correct', checker: finding.checker, finding, fileName: currentFileName }),
     });
     if (goodBtn) { goodBtn.textContent = '✓ 잘했어 태식아 👍'; goodBtn.classList.add('active-correct'); }
     if (badBtn) badBtn.style.display = 'none';
-    if (sentEl) { sentEl.textContent = '태식이가 고마워해요!'; sentEl.className = 'fb-sent fb-sent-ok'; }
+    if (sentEl) { sentEl.textContent = '🦴 태식이가 고마워해요!'; sentEl.className = 'fb-sent fb-sent-ok'; }
     loadAnalyzePanel();
   } catch {
     if (goodBtn) { goodBtn.disabled = false; goodBtn.textContent = '잘했어 태식아 👍'; }
@@ -327,13 +332,21 @@ async function onCorrect(checker, fid, finding) {
 function onFalsePositive(fid) {
   const fpForm = document.getElementById(fid + '_fp');
   if (!fpForm) return;
-  fpForm.style.display = fpForm.style.display === 'none' ? 'block' : 'none';
+  const isOpen = fpForm.style.display !== 'none';
+  fpForm.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    // 열릴 때 textarea에 포커스
+    const ta = document.getElementById(fid + '_reason');
+    if (ta) setTimeout(() => ta.focus(), 50);
+  }
 }
 
 // ── 오탐지 이유 입력 후 전송 ────────────────────────────────
-async function sendFalsePositive(checker, fid, finding) {
+async function sendFalsePositive(fid) {
+  const finding = _findings[fid];
+  if (!finding) return;
   const sentEl = document.getElementById(fid + '_sent');
-  const sendBtn = document.querySelector(`#${fid}_fp .fp-send`);
+  const sendBtn = document.getElementById(fid + '_fpbtn');
   const reason = document.getElementById(fid + '_reason')?.value.trim() || '';
 
   if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '저장 중...'; }
@@ -342,14 +355,14 @@ async function sendFalsePositive(checker, fid, finding) {
     await fetch('/api/appraisal/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'false_positive', checker, finding, description: reason, fileName: currentFileName }),
+      body: JSON.stringify({ type: 'false_positive', checker: finding.checker, finding, description: reason, fileName: currentFileName }),
     });
     document.getElementById(fid + '_fp').style.display = 'none';
     const badBtn = document.getElementById(fid + '_bad');
     const goodBtn = document.getElementById(fid + '_good');
     if (badBtn) { badBtn.textContent = '✓ 분발해 태식아 💪'; badBtn.classList.add('active-fp'); badBtn.disabled = true; }
     if (goodBtn) goodBtn.style.display = 'none';
-    if (sentEl) { sentEl.textContent = '태식이가 분발할게요!'; sentEl.className = 'fb-sent fb-sent-ok'; }
+    if (sentEl) { sentEl.textContent = '🗞️ 접수됐어요. 태식이가 분발할게요!'; sentEl.className = 'fb-sent fb-sent-ok'; }
     loadAnalyzePanel();
   } catch {
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '훈육 완료 →'; }
